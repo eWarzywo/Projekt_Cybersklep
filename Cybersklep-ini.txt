@@ -1,0 +1,513 @@
+Create database if not exists cybersklep;
+
+use cybersklep;
+
+create table if not exists dostawcy
+(
+    id_dostawca    int auto_increment
+        primary key,
+    nazwa_dostawcy varchar(50) not null,
+    email          varchar(50) unique not null,
+    telefon        int  unique not null,
+    adres          varchar(50) not null,
+    kod_pocztowy   varchar(50) not null
+);
+
+create table if not exists kategorie
+(
+    id_kategoria    int auto_increment
+        primary key,
+    nazwa_kategorii varchar(50) unique not null,
+    opis_kategorii  varchar(50) not null
+);
+
+create table if not exists klienci
+(
+    id_klient    int auto_increment
+        primary key,
+    imie         varchar(50) not null,
+    nazwisko     varchar(50) not null,
+    email        varchar(50) unique not null,
+    telefon      int unique   not null,
+    adres        varchar(50) not null,
+    kod_pocztowy varchar(50) not null
+);
+
+create table if not exists klienci_zamowienia
+(
+    id_klient             int not null,
+    id_zamowienie         int not null,
+    id_klienci_zamowienia int auto_increment
+        primary key
+);
+
+alter table klienci_zamowienia
+    add constraint fk_klienci_zamowienia_klienci
+        foreign key (id_klient) references klienci (id_klient)
+            on delete cascade;
+
+create table if not exists magazyn
+(
+    id_rekordu     int auto_increment
+        primary key,
+    id_magazyn      int,
+    id_produkt      int         not null,
+    ilosc_produktow int         not null,
+    adres           varchar(50) null
+);
+
+create table if not exists oceny_produktow
+(
+    id_ocena_produktu int auto_increment
+        primary key,
+    id_produkt        int not null,
+    ocena_produktu    int not null
+);
+
+create table if not exists pracownicy
+(
+    id_pracownik int auto_increment
+        primary key,
+    imie         varchar(50) not null,
+    nazwisko     varchar(50) not null,
+    email        varchar(50) unique not null,
+    telefon      int  unique not null,
+    adres        varchar(50) not null,
+    kod_pocztowy varchar(50) not null
+);
+
+create table if not exists produkty
+(
+    id_produkt     int auto_increment
+        primary key,
+    nazwa_produktu varchar(50) not null,
+    cena           decimal(10, 2) not null,
+    ilosc          int            not null,
+    id_dostawca    int            not null
+);
+
+alter table magazyn
+    add constraint fk_magazyn_produkty
+        foreign key (id_produkt) references produkty (id_produkt)
+            on delete cascade;
+
+alter table oceny_produktow
+    add constraint fk_oceny_produktow_produkty
+        foreign key (id_produkt) references produkty (id_produkt)
+            on delete cascade;
+
+alter table produkty
+    add constraint fk_produkty_dostawcy
+        foreign key (id_dostawca) references dostawcy (id_dostawca)
+            on delete cascade;
+
+
+
+create table if not exists produkty_kategorie
+(
+    id_produkt            int not null,
+    id_kategoria          int not null,
+    id_produkty_kategorie int auto_increment
+        primary key
+);
+
+alter table produkty_kategorie
+    add constraint fk_produkty_kategorie_kategorie
+        foreign key (id_kategoria) references kategorie (id_kategoria)
+            on delete cascade;
+
+alter table produkty_kategorie
+    add constraint fk_produkty_kategorie_produkty
+        foreign key (id_produkt) references produkty (id_produkt)
+            on delete cascade;
+
+create table if not exists szczegoly_zamowienia
+(
+    id_szczegoly_zamowienia int auto_increment
+        primary key,
+    id_zamowienie           int not null,
+    id_produkt              int not null,
+    adres_zamowienia
+                    varchar(50) not null,
+    ilosc_produktow         int not null
+);
+
+alter table szczegoly_zamowienia
+    add constraint fk_szczegoly_zamowienia_produkty
+        foreign key (id_produkt) references produkty (id_produkt)
+            on delete cascade;
+
+create table if not exists zamowienia
+(
+    id_zamowienie   int auto_increment
+        primary key,
+    data_zamowienia date not null,
+    opis_zamowienia varchar(50) null
+);
+
+alter table klienci_zamowienia
+    add constraint fk_klienci_zamowienia_zamowienia
+        foreign key (id_zamowienie) references zamowienia (id_zamowienie)
+            on delete cascade;
+
+alter table szczegoly_zamowienia
+    add constraint fk_szczegoly_zamowienia_zamowienia
+        foreign key (id_zamowienie) references zamowienia (id_zamowienie)
+            on delete cascade;
+
+
+create index idx_produkt_nazwa_produktu using btree
+on produkty(nazwa_produktu);
+create index idx_produkt_ilosc using hash
+on produkty(ilosc);
+create index idx_klient_imie using btree
+on klienci(imie);
+create index idx_klient_nazwisko using btree
+on klienci(nazwisko);
+
+create view klient_view as
+select imie, nazwisko, email, telefon
+from klienci;
+
+
+DELIMITER //
+create or replace trigger ocena_produktu_trigger
+before insert on oceny_produktow
+for each row
+begin
+    if new.ocena_produktu > 5 then
+        set new.ocena_produktu = 5;
+    elseif new.ocena_produktu < 1 then
+        set new.ocena_produktu = 1;
+    end if;
+END//
+DELIMITER ;
+
+
+CREATE SEQUENCE id_klient_seq
+START WITH 1
+INCREMENT BY 1
+MINVALUE 1
+MAXVALUE 99999;
+
+insert into klienci (id_klient ,imie, nazwisko, email, telefon, adres, kod_pocztowy) values
+(nextval(id_klient_seq),'Jan', 'Kowalski', 'maniek@gmail.com', 124234424, 'ul. Kowalskiego 1', '12-345'),
+(nextval(id_klient_seq),'Anna', 'Nowak', 'kozak@gopro.com', 984154321, 'ul. Nowaka 2', '54-321'),
+(nextval(id_klient_seq),'Piotr', 'Kowal', 'kowal@git.com', 123123123, 'ul. Kowala 3', '12-123'),
+(nextval(id_klient_seq),'Krzysztof', 'Kowalski', 'kamien.smiech.com', 123456789, 'ul. Kowalskiego 1', '12-345'),
+(nextval(id_klient_seq),'Kamil', 'Nowak', 'oj@o2.com', 987654321, 'ul. Nowaka 2', '54-321'),
+(nextval(id_klient_seq),'Krzysztof', 'Kowal', 'pogchamp@gm.com', 123153123, 'ul. Kowala 3', '12-123'),
+(nextval(id_klient_seq),'Krzysztof', 'Kowal', 'yurek@mog.com', 123123689, 'ul. Kowala 3', '12-123'),
+(nextval(id_klient_seq),'Krzysztof', 'Bonesmashowy', 'bonesmash@gg.com', 131223789, 'ul. Kowala 3', '12-123'),
+(nextval(id_klient_seq),'Andrzej', 'Edgowy', 'edging@4life.com', 126543789, 'ul. Kowala 3', '12-123'),
+(nextval(id_klient_seq),'Żaneta', 'Żul', 'plonacemiodo@bulki.com', 420420420, 'ul. Kowala 3', '12-123');
+
+
+insert into pracownicy (imie, nazwisko, email, telefon, adres, kod_pocztowy) values
+('Jan', 'Kowalski', 'morswin@gmail.com', 123123789, 'ul. Kowalskiego 1', '12-345'),
+('Anna', 'Nowak', 'dziwny@gg.com', 987123321, 'ul. Nowaka 2', '54-321'),
+('Piotr', 'Kowal', 'lol@gmail.com', 123321123, 'ul. Kowala 3', '12-123'),
+('Krzysztof', 'Kowalski', 'mocny@haha.com', 123456789, 'ul. Kowalskiego 1', '12-345'),
+('Kamil', 'Nowak', 'zarys@uko.com', 987654321, 'ul. Nowaka 2', '54-321'),
+('Krzysztof', 'Kowal', 'cyberpunk@k.com', 123123123, 'ul. Kowala 3', '12-123'),
+('Jan', 'Kowalski', 'jan.kowalski@example.com', 100737819, 'ul. Kwiatowa 1', '12-345'),
+('Anna', 'Nowak', 'anna.nowak@example.com', 981234321, 'ul. Słoneczna 2', '54-321'),
+('Piotr', 'Wiśniewski', 'piotr.wisniewski@example.com', 112331233, 'ul. Polna 3', '12-123'),
+('Ewa', 'Kaczmarek', 'ewa.kaczmarek@example.com', 442342666, 'ul. Leśna 4', '65-432'),
+('Michał', 'Lewandowski', 'michal.lewandowski@example.com', 774134999, 'ul. Główna 5', '98-765');
+
+insert into dostawcy (nazwa_dostawcy, email, telefon, adres, kod_pocztowy) values
+('AMD', 'urugwaj.com', 123336789, 'ul. Kowalskiego 1', '12-345'),
+('Intel', 'kazachstan.com', 987634321, 'ul. Nowaka 2', '54-321'),
+('NZXT', 'kgoon.com', 123111313, 'ul. Kowala 3', '12-123'),
+('Apple', 'maroko.com', 123123123, 'ul. Kowala 3', '12-123'),
+('Samsung', 'kongo.com', 123112323, 'ul. Kowala 3', '12-123'),
+('Asus', 'polska.com', 133123123, 'ul. Kowala 3', '12-123'),
+('Corsair', 'corsair@example.com', 212384321, 'ul. Corsair 1', '12-345'),
+('Logitech', 'logitech@example.com', 912334321, 'ul. Logitech 2', '54-321'),
+('Razer', 'razer@example.com', 123183223, 'ul. Razer 3', '12-123');
+
+insert into kategorie (nazwa_kategorii, opis_kategorii) values
+('Elektronika', 'Opis kategorii'),
+('AGD', 'Opis kategorii'),
+('RTV', 'Opis kategorii'),
+('Komputery', 'Opis kategorii'),
+('Telefony', 'Opis kategorii'),
+('Laptopy', 'Opis kategorii');
+
+insert into produkty (nazwa_produktu, cena, ilosc, id_dostawca) values
+('Procesor', 2302.50, 0, 1),
+('Klawiatura', 313.50, 0, 2),
+('Myszka', 114.50, 00, 3),
+('Monitor', 1555.50, 50, 4),
+('Karta graficzna', 6999.50, 0, 5),
+('Plyta glowna', 1799.50, 0, 6),
+('Telefon', 2000.50, 0, 1),
+('Laptop',5000.50, 0, 2),
+('Telewizor',4000.50, 0, 3),
+('Kuchenka', 1500.50, 0, 4),
+('Lodowka', 800.50, 0, 5),
+('Zmywarka', 700.50, 0, 6),
+('Iphone XS', 3000.50, 0, 1),
+('Samsung S20', 2500.50, 0, 2),
+('Asus ROG', 4000.50, 0, 3),
+('Macbook Pro', 5000.50, 0, 4),
+('Samsung 4k', 3000.50, 0, 5),
+('LG 4k', 2500.50, 0, 6),
+('Iphone 11', 3000.50, 0, 1),
+('Samsung S10', 2500.50, 0, 2),
+('Asus TUF', 4000.50, 0, 3),
+('Macbook Air', 5000.50, 0, 4),
+('Samsung 1080p', 3000.50, 0, 5),
+('LG 1080p', 2500.50, 0, 6),
+('Iphone 12', 3000.50, 0, 1),
+('Samsung S9', 2500.50, 0, 2),
+('Asus Zephyrus', 4000.50, 0, 3),
+('Macbook Pro 16', 5000.50, 0, 4),
+('Samsung 720p', 3000.50, 0, 5),
+('LG 720p', 2500.50, 0, 6);
+
+insert into zamowienia (data_zamowienia, opis_zamowienia) values
+('2020-01-01', 'Dostarcz delikatnie'),
+('2020-01-02', 'Przyspieszona przesylka'),
+('2020-01-03', 'Komputer'),
+('2020-01-04', 'cos tam'),
+('2020-01-05', 'niemily klient'),
+('2020-01-06', 'szybko'),
+('2020-01-07', 'brak priorytetu'),
+('2020-01-08', 'Opis'),
+('2020-01-09', 'Opis'),
+('2020-01-10', 'Opis'),
+('2020-01-11', 'Opis zamowienia'),
+('2020-01-12', 'Opis zamowienia');
+
+insert into klienci_zamowienia (id_klient, id_zamowienie) values
+(1, 1),
+(2, 2),
+(3, 3),
+(1, 4),
+(2, 5),
+(3, 6),
+(4, 7),
+(5, 8),
+(6, 9),
+(7, 10),
+(8, 11),
+(9, 12),
+(10, 1),
+(1, 2),
+(2, 3),
+(3, 4),
+(4, 5),
+(5, 6),
+(6, 7),
+(7, 8),
+(8, 9),
+(9, 10),
+(10, 11),
+(1, 12),
+(2, 1),
+(3, 2),
+(4, 3),
+(5, 4),
+(6, 5),
+(7, 6),
+(8, 7),
+(9, 8),
+(10, 9),
+(1, 10),
+(2, 11),
+(3, 12);
+
+
+insert into szczegoly_zamowienia (id_zamowienie, id_produkt,ilosc_produktow, adres_zamowienia ) values
+(1, 1, 10,'ul. Kowalskiego 1'),
+(2, 2, 20,'ul. Nowaka 2'),
+(3, 3, 30,'ul. Kowala 3'),
+(1, 4, 40,'ul. Kowalskiego 1'),
+(2, 5, 50,'ul. Nowaka 2'),
+(3, 6, 60,'ul. Kowala 3'),
+(1, 7, 70,'ul. Kowalskiego 1'),
+(2, 8, 80,'ul. Nowaka 2'),
+(3, 9, 90,'ul. Kowala 3'),
+(1, 10, 100,'ul. Kowalskiego 1'),
+(2, 11, 110,'ul. Nowaka 2'),
+(3, 12, 120,'ul. Kowala 3');
+
+insert into produkty_kategorie (id_produkt, id_kategoria) values
+(1, 1),
+(2, 2),
+(3, 3),
+(4, 4),
+(5, 5),
+(6, 6);
+
+
+insert into magazyn (id_magazyn, id_produkt, ilosc_produktow, adres) values
+(1, 1, 10, 'ul. Kowalskiego 1'),
+(2, 2, 20, 'ul. Nowaka 2'),
+(3, 3, 30, 'ul. Kowala 3'),
+(4, 4, 40, 'ul. Kowalskiego 1'),
+(5, 5, 50, 'ul. Nowaka 2'),
+(6, 6, 60, 'ul. Kowala 3'),
+(7, 7, 70, 'ul. Kowalskiego 1'),
+(8, 8, 80, 'ul. Nowaka 2'),
+(9, 9, 90, 'ul. Kowala 3'),
+(10, 10, 100, 'ul. Kowalskiego 1'),
+(11, 11, 110, 'ul. Nowaka 2'),
+(2, 12, 120, 'ul. Kowala 3'),
+(3, 13, 10, 'ul. Kowalskiego 1'),
+(4, 14, 20, 'ul. Nowaka 2'),
+(5, 15, 30, 'ul. Kowala 3'),
+(6, 16, 40, 'ul. Kowalskiego 1'),
+(7, 17, 50, 'ul. Nowaka 2'),
+(1, 18, 60, 'ul. Kowala 3'),
+(1, 19, 70, 'ul. Kowalskiego 1'),
+(2, 20, 80, 'ul. Nowaka 2'),
+(1, 21, 90, 'ul. Kowala 3'),
+(2, 22, 100, 'ul. Kowalskiego 1'),
+(3, 23, 110, 'ul. Nowaka 2'),
+(2, 24, 120, 'ul. Kowala 3'),
+(5, 25, 10, 'ul. Kowalskiego 1'),
+(6, 26, 20, 'ul. Nowaka 2'),
+(2, 27, 30, 'ul. Kowala 3'),
+(38, 28, 40, 'ul. Kowalskiego 1'),
+(9, 29, 50, 'ul. Nowaka 2'),
+(2, 30, 60, 'ul. Kowala 3'),
+(1, 3, 70, 'ul. Kowalskiego 1'),
+(2, 8, 80, 'ul. Nowaka 2'),
+(3, 9, 90, 'ul. Kowala 3'),
+(3, 10, 100, 'ul. Kowalskiego 1'),
+(2, 11, 110, 'ul. Nowaka 2'),
+(1, 12, 120, 'ul. Kowala 3');
+
+
+insert into oceny_produktow (id_produkt, ocena_produktu) values
+(1, 5),
+(2, 4),
+(3, 3),
+(4, 2),
+(5, 1),
+(6, 5),
+(7, 4),
+(8, 3),
+(9, 2),
+(10, 1),
+(11, 5),
+(12, 4),
+(13, 3),
+(14, 2),
+(15, 1),
+(16, 5),
+(17, 4),
+(18, 3),
+(19, 2),
+(20, 1),
+(21, 5),
+(22, 4),
+(23, 3),
+(24, 2);
+
+
+DELIMITER //
+create or replace procedure fix_ilosc_produktow()
+begin
+    update produkty
+    set ilosc = (select sum(ilosc_produktow) from magazyn where magazyn.id_produkt = produkty.id_produkt);
+end //
+DELIMITER ;
+
+call fix_ilosc_produktow();
+
+create or replace trigger update_ilosc_produktow
+after update on magazyn
+for each row
+    call fix_ilosc_produktow();
+create or replace trigger insert_ilosc_produktow
+after insert on magazyn
+for each row
+    call fix_ilosc_produktow();
+create or replace trigger delete_ilosc_produktow
+after delete on magazyn
+for each row
+    call fix_ilosc_produktow();
+
+Create user if not exists admin@localhost;
+grant all on cybersklep.* to admin@localhost;
+
+Create user if not exists pracownik@localhost;
+grant select on cybersklep.* to pracownik@localhost;
+
+create user if not exists klient@localhost;
+grant select on klient_view to klient@localhost;
+
+DELIMITER //
+create or replace trigger usuwanie_coco
+before insert on klienci
+for each ROW
+BEGIN
+    if new.imie like '%C%o%c%o%' and new.nazwisko like '%J%u%m%b%o%' then
+        signal sqlstate '45000' set message_text = 'W tej tabeli nie może być Coco Jumbo!';
+    end if;
+END//
+DELIMITER ;
+
+alter table oceny_produktow add opis varchar (255) default 'brak opisu';
+
+DELIMITER //
+create or replace function ocena_produkty(ocena int) returns varchar(255)
+begin
+    if ocena = 1 then
+        return 'bardzo zle';
+    elseif ocena = 2 then
+        return 'zle';
+    elseif ocena = 3 then
+        return 'srednio';
+    elseif ocena = 4 then
+        return 'dobrze';
+    elseif ocena = 5 then
+        return 'bardzo dobrze';
+    else
+        return 'brak opisu';
+    end if;
+end //
+DELIMITER ;
+
+update oceny_produktow cp set cp.opis = ocena_produkty(cp.ocena_produktu);
+
+DELIMITER //
+create or replace trigger telefon
+before insert on klienci for each row
+begin 
+if new.telefon not regexp '^[0-9]{9}$' then
+signal sqlstate '45000' set message_text = 'Telefon musi składać się z 9 cyfr';
+end if;
+end //
+DELIMITER ;
+
+
+
+#
+#SPECJALNE KOMENDY
+#				
+#				
+#				
+#
+# RENAME table oceny_produktow to kasujemy_oceny_produktow;
+# DROP table kasujemy_oceny_produktow;
+#
+#
+# TRUNCATE table pracownicy;
+#
+#
+#
+#
+# admin ma dostęp do wszystkich tabel i wszystkich operacji
+# pracownik ma jedynie wgląd do wszystkich tabel
+# klient ma dostęp wyłącznie do tworzonego widoku klient_view
+
+
+
+
+
+
